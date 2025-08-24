@@ -18,16 +18,17 @@ on fs
     wait /dev/block/platform/soc/11270000.ufshci
     symlink /dev/block/platform/soc/11270000.ufshci /dev/block/bootdevice
 
-# We need vold early for metadata encryption
 on early-fs
     start vold
 
 on late-fs
-    # Mount RW partitions which need run fsck
     mount_all /first_stage_ramdisk/fstab.mt8781 --late
 
 on post-fs
     start boot-hal-1-2
+
+    mkdir /dev/block/by-name 0755 root root
+    mkdir /dev/block/platform/bootdevice/by-name 0755 root root
 
     symlink /dev/block/mapper/pl_a /dev/block/by-name/preloader_raw_a
     symlink /dev/block/mapper/pl_b /dev/block/by-name/preloader_raw_b
@@ -41,26 +42,20 @@ on property:persist.vendor.mtk.pl_lnk=1
     symlink /dev/block/mapper/pl_a /dev/block/platform/bootdevice/by-name/preloader_raw_a
     symlink /dev/block/mapper/pl_b /dev/block/platform/bootdevice/by-name/preloader_raw_b
 
-# FSTAB_RAW2(lk2,bootloader2) of fstab.in.emmc, but without bootloader2 mount point
     symlink /dev/block/by-name/lk1 /dev/block/by-name/bootloader1
     symlink /dev/block/by-name/lk2 /dev/block/by-name/bootloader2
 
-# Fix ro.vendor.mtk_ufs_support remove issue of recovery mode
 on property:vendor.mtk.boot0_linka=1
     symlink /dev/block/sda /dev/block/mmcblk0boot0
-
 on property:vendor.mtk.boot0_linkb=1
     symlink /dev/block/sdb /dev/block/mmcblk0boot0
-
 on property:vendor.mtk.boot0_linkc=1
     symlink /dev/block/sdc /dev/block/mmcblk0boot0
 
 on property:vendor.mtk.boot1_linka=1
     symlink /dev/block/sda /dev/block/mmcblk0boot1
-
 on property:vendor.mtk.boot1_linkb=1
     symlink /dev/block/sdb /dev/block/mmcblk0boot1
-
 on property:vendor.mtk.boot1_linkc=1
     symlink /dev/block/sdc /dev/block/mmcblk0boot1
 
@@ -84,33 +79,30 @@ service vendor.keymint-trustkernel /vendor/bin/hw/android.hardware.security.keym
     interface android.hardware.keymaster@4.0::IKeymasterDevice default
     interface android.hardware.keymaster@4.1::IKeymasterDevice default
     user nobody
+    group system
+    disabled
     seclabel u:r:recovery:s0
 
 on property:crypto.ready=1
     start vendor.keymint-trustkernel
 
 on property:hwservicemanager.ready=true
-    start mobicore
     start vendor.gatekeeper-1-0
     start vendor.keymint-trustkernel
 
 on property:ro.crypto.state=unsupported
-    stop mobicore
     stop vendor.gatekeeper-1-0
     stop vendor.keymint-trustkernel
 
 on property:ro.crypto.state=unencrypted
-    stop mobicore
     stop vendor.gatekeeper-1-0
     stop vendor.keymint-trustkernel
 
 on property:twrp.decrypt.done=true
-    stop mobicore
     stop vendor.gatekeeper-1-0
     stop vendor.keymint-trustkernel
 
 on property:crypto.ready=0
-    stop mobicore
     stop vendor.gatekeeper-1-0
     stop vendor.keymint-trustkernel
 
@@ -121,4 +113,3 @@ on post-fs-data
 
     start health-hal-2-1
     setprop sys.usb.config mtp,adb
-
