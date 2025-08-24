@@ -5,7 +5,7 @@
 #
 
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/twrp_XPAD.mk
+    $(LOCAL_DIR)/twrp_P1102GT.mk
 
 COMMON_LUNCH_CHOICES := \
-    twrp_XPAD-eng
+    twrp_P1102GT-eng

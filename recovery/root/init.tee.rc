@@ -1,52 +1,76 @@
-# Start Daemon (Registry directories should already be present)
-service mobicore /vendor/bin/mcDriverDaemon --sfs-reformat --P1 /mnt/vendor/persist/mcRegistry \
-    -r /vendor/app/mcRegistry/020f0000000000000000000000000000.drbin \
-    -r /vendor/app/mcRegistry/05120000000000000000000000000001.drbin \
-    -r /vendor/app/mcRegistry/06090000000000000000000000000000.drbin \
-    -r /vendor/app/mcRegistry/07170000000000000000000000000000.drbin \
-    -r /vendor/app/mcRegistry/08050000000000000000000000003419.drbin \
-    -r /vendor/app/mcRegistry/40188311faf343488db888ad39496f9a.drbin \
-    -r /vendor/app/mcRegistry/5020170115e016302017012521300000.drbin
-    user root
-    group root
-    disabled
-    seclabel u:r:recovery:s0
-
-on init
-    #create mountpoint for /mnt/vendor/persist partition
-    mkdir /mnt/vendor/persist 0771 system system
-
 on post-fs
-    chown system system /mnt/vendor/persist
-    chmod 0771 /mnt/vendor/persist
+	write /proc/bootprof "tkcore: prepare system ta path"
 
-    # We restorecon /mnt/vendor/persist to set SEPolicy label.
-    restorecon /mnt/vendor/persist
+	restorecon /mnt/vendor/persist
+	mkdir /mnt/vendor/persist/t6
+	chown system system /mnt/vendor/persist/t6
+	restorecon /mnt/vendor/persist/t6
 
-    # Create mcRegistry to store failure record
-    mkdir /mnt/vendor/persist/mcRegistry 0771 system system
-    mkdir /mnt/vendor/persist/paytrigger
-    chown system system /mnt/vendor/persist/paytrigger
-    chmod 0777 /mnt/vendor/persist/paytrigger
+	restorecon /mnt/vendor/protect_f
+	mkdir /mnt/vendor/protect_f/tee
+	chown system system /mnt/vendor/protect_f/tee
+	restorecon /mnt/vendor/protect_f/tee
 
-on post-fs-data
-    # Create /data/vendor/key_provisioning dir and get proper encryption policy installed
-    # Key Installation
-    mkdir /data/vendor/key_provisioning 0771 system system
+	start teed
 
-# For META/FACTORY mode
+on property:vendor.trustkernel.fs.state=prepare
+	write /proc/bootprof "tkcore: prepare basic"
+	mkdir /data/vendor/t6
+	chown system system /data/vendor/t6
+	restorecon /data/vendor/t6
+
+	write /proc/bootprof "tkcore: prepare sfs"
+	mkdir /data/vendor/t6/fs
+	chown system system /data/vendor/t6/fs
+	restorecon /data/vendor/t6/fs
+
+	write /proc/bootprof "tkcore: prepare service provider ta path"
+	mkdir /data/vendor/t6/app
+	chown system system /data/vendor/t6/app
+	restorecon /data/vendor/t6/app
+	setprop vendor.trustkernel.fs.state ready
+
+# For non-encrypted case
 on property:ro.crypto.state=unencrypted
-    write /proc/bootprof "MOBICORE: create /data/vendor/mcRegistry ++ (unencrypted)"
-    mkdir /data/vendor/mcRegistry 0775 system system
-    write /proc/bootprof "MOBICORE: create /data/vendor/mcRegistry -- (unencrypted)"
+	setprop vendor.trustkernel.fs.mode 1
+	setprop vendor.trustkernel.fs.state prepare
 
-# Normal mode, FBE
-on property:ro.crypto.type=file && property:ro.crypto.state=encrypted
-    write /proc/bootprof "MOBICORE: create /data/vendor/mcRegistry ++ (FBE encrypted)"
-    mkdir /data/vendor/mcRegistry 0775 system system
-    write /proc/bootprof "MOBICORE: create /data/vendor/mcRegistry -- (FBE encrypted)"
-
-# Normal mode, FDE
+# For FDE/encrypted successfully
 on property:vold.decrypt=trigger_restart_framework
-    write /proc/bootprof "MOBICORE: create /data/vendor/mcRegistry ++ (FDE encrypted)"
-    mkdir /data/vendor/mcRegistry 0775 system system
+	setprop vendor.trustkernel.fs.mode 2
+	setprop vendor.trustkernel.fs.state prepare
+
+# For FBE/encrypted successfully
+on property:ro.crypto.type=file && property:ro.crypto.state=encrypted
+	setprop vendor.trustkernel.fs.mode 3
+	setprop vendor.trustkernel.fs.state prepare
+
+on property:vendor.trustkernel.log.state=ready
+	write /proc/bootprof "tkcore: prepare log file"
+	restorecon /data/vendor/t6/tkcore.log
+	setprop vendor.trustkernel.log.state enable
+
+on property:vendor.trustkernel.ready=true && property:vendor.trustkernel.fs.state=ready
+       start tee_check_keybox
+
+service teed /vendor/bin/teed \
+    --datapath /data/vendor/t6/fs \
+    --sptapath /data/vendor/t6/app \
+    --systapath /vendor/app/t6 \
+    --rpmbdev /dev/mmcblk0rpmb \
+    --rpmbdev /dev/rpmb0 \
+    --prot /mnt/vendor/persist/t6 \
+    --prot /mnt/vendor/protect_f/tee \
+    --prebuilt /vendor/app/t6/data \
+    --logpath /data/vendor/t6/tkcore.log \
+    --proprefix vendor.trustkernel
+	user root
+	group root
+	seclabel u:r:recovery:s0
+
+service tee_check_keybox /vendor/bin/tee_check_keybox
+       user root
+       group root
+       seclabel u:r:recovery:s0
+       disabled
+       oneshot

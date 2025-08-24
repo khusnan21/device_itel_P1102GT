@@ -79,7 +79,7 @@ service vendor.gatekeeper-1-0 /vendor/bin/hw/android.hardware.gatekeeper@1.0-ser
     disabled
     seclabel u:r:recovery:s0
 
-service vendor.keymint-trustonic /vendor/bin/hw/android.hardware.security.keymint-service.trustonic
+service vendor.keymint-trustkernel /vendor/bin/hw/android.hardware.security.keymint-service.trustkernel
     class early_hal
     interface android.hardware.keymaster@4.0::IKeymasterDevice default
     interface android.hardware.keymaster@4.1::IKeymasterDevice default
@@ -87,32 +87,32 @@ service vendor.keymint-trustonic /vendor/bin/hw/android.hardware.security.keymin
     seclabel u:r:recovery:s0
 
 on property:crypto.ready=1
-    start vendor.keymint-trustonic
+    start vendor.keymint-trustkernel
 
 on property:hwservicemanager.ready=true
     start mobicore
     start vendor.gatekeeper-1-0
-    start vendor.keymint-trustonic
+    start vendor.keymint-trustkernel
 
 on property:ro.crypto.state=unsupported
     stop mobicore
     stop vendor.gatekeeper-1-0
-    stop vendor.keymint-trustonic
+    stop vendor.keymint-trustkernel
 
 on property:ro.crypto.state=unencrypted
     stop mobicore
     stop vendor.gatekeeper-1-0
-    stop vendor.keymint-trustonic
+    stop vendor.keymint-trustkernel
 
 on property:twrp.decrypt.done=true
     stop mobicore
     stop vendor.gatekeeper-1-0
-    stop vendor.keymint-trustonic
+    stop vendor.keymint-trustkernel
 
 on property:crypto.ready=0
     stop mobicore
     stop vendor.gatekeeper-1-0
-    stop vendor.keymint-trustonic
+    stop vendor.keymint-trustkernel
 
 on post-fs-data
     mkdir /data/vendor_de 0770 system system
