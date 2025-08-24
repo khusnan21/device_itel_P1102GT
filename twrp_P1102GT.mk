@@ -13,8 +13,8 @@ $(call inherit-product, vendor/twrp/config/common.mk)
 # Product Specifics
 PRODUCT_NAME := twrp_P1102GT
 PRODUCT_DEVICE := itel-P1102GT
-PRODUCT_BRAND := itel
+PRODUCT_BRAND := Itel
 PRODUCT_MODEL := itel P1102GT
 PRODUCT_MANUFACTURER := itel
 
-PRODUCT_GMS_CLIENTID_BASE := android-itel
+PRODUCT_GMS_CLIENTID_BASE := android-Itel
