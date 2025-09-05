@@ -104,6 +104,10 @@ PRODUCT_PACKAGES += \
     update_engine_sideload \
     update_verifier
 
+# Otacert
+PRODUCT_EXTRA_RECOVERY_KEYS += \
+    $(DEVICE_PATH)/security/releasekey
+
 PRODUCT_PACKAGES_DEBUG += \
     update_engine_client
 
@@ -113,7 +117,6 @@ TW_RECOVERY_ADDITIONAL_RELINK_LIBRARY_FILES += \
 
 TARGET_RECOVERY_DEVICE_MODULES += \
     android.hardware.keymaster@4.1
-
 # Inject properti dari stock system ke recovery
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.product.device=itel-P1102GT \
